@@ -12,18 +12,22 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx (optional but recommended)
+      - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
       - name: Build & bring up services
         run: |
-          # note: no hyphen here
           docker compose up --build -d
           docker compose ps
 
-      - name: Run tests
+      - name: Wait for FastAPI to be ready
         run: |
-          pytest -q
+          timeout 60 bash -c 'until curl -sf http://localhost:8000/; do sleep 1; done'
+
+      - name: Run tests inside the container
+        run: |
+          # run pytest in the 'web' service container
+          docker compose exec web pytest -q
 
       - name: Tear down
         if: always()
